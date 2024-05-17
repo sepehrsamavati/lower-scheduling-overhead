@@ -1,6 +1,6 @@
 // @ts-check
-
 import net from "node:net";
+import "./common/noProcessExit.js";
 import config from "./common/config.js";
 import messageResolver, { createMessage } from "./common/messageResolver.js";
 
@@ -8,7 +8,6 @@ import messageResolver, { createMessage } from "./common/messageResolver.js";
  * @typedef {{ id: string; lastMessage: number; lastPing: number; }} VMInfo
  */
 
-let taskIdCursor = 0;
 /** @type {Set<VMInfo>} */
 const virtualMachines = new Set();
 
@@ -40,8 +39,8 @@ server.on('connection', socket => {
             virtualMachines.add(vm);
             console.info(`VM registered #${res.register.id}`);
 
-            console.info(`Sending task #${++taskIdCursor} to VM #${vm.id}`);
-            socket.write(createMessage.runTask(taskIdCursor, 5));
+            // console.info(`Sending task #${++taskIdCursor} to VM #${vm.id}`);
+            // socket.write(createMessage.runTask(taskIdCursor, 5));
 
             return;
         }

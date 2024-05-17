@@ -4,8 +4,8 @@ export const createMessage = Object.freeze({
     ping: () => `${messageTypes.ping},${Date.now()}`,
     close: () => messageTypes.close,
 
-    /** @param {string} id */
-    register: (id) => `${messageTypes.register},${id}`,
+    /** @param {string, number} id */
+    register: (id, power) => `${messageTypes.register},${id},${power}`,
 
     /**
      * @param {number} taskId
@@ -30,8 +30,8 @@ export default function (rawBuf) {
             const [, time] = parts;
             return { ping: Math.round(Date.now() - Number.parseInt(time)) };
         case messageTypes.register:
-            const [, id] = parts;
-            return { register: { id } };
+            const [, id, power] = parts;
+            return { register: { id, power: Number.parseInt(power) } };
         case messageTypes.close:
             return { close: true };
         case messageTypes.runTask: {
