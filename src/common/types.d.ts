@@ -14,8 +14,6 @@ export type VirtualMachineReference = {
     id: string;
     lastMessage: number;
     lastPing: number;
-    power: number;
-    setPower: (power: number) => void;
 };
 
 export type VirtualMachinesReference = Set<VirtualMachineReference>;
@@ -23,11 +21,12 @@ export type VirtualMachinesReference = Set<VirtualMachineReference>;
 export type Combination = {
     task: Task;
     vmId: VirtualMachineReference['id'];
-    vmPower: VirtualMachineReference['power'];
+    vmPower: number;
 };
 
 export type CandidateSchedule = {
     combination: Array<Combination>;
+    vmPowerMap: Map<VirtualMachineReference['id'], number>;
     createCombination: (tasks: Array<Task>) => void;
-    estimatedTime: number;
+    time: number;
 };

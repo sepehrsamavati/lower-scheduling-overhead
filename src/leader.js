@@ -3,6 +3,7 @@ import net from "node:net";
 import "./common/noProcessExit.js";
 import eoo from "./algorithms/eoo.js";
 import config from "./common/config.js";
+import regression from "./algorithms/regression.js";
 import messageResolver, { createMessage } from "./common/messageResolver.js";
 
 /** @type {import('./common/types.js').VirtualMachinesReference} */
@@ -11,9 +12,33 @@ const virtualMachines = new Set();
 const vmSocket = new Map();
 
 let openRequests = 0;
+let requestsCount = 0;
+/** @type {NodeJS.Timeout | number} */
+let progressTimer = 0;
+const showProgress = () => {
+    progressTimer = setInterval(() => {
+        console.info(`${Math.round(((requestsCount - openRequests) / requestsCount) * 100)}%`);
+    }, 100);
+}, stopProgress = () => {
+    clearInterval(progressTimer);
+};
 let scheduleEnd = () => { };
 
 const server = net.createServer();
+
+/** @type {(schedule: import('./common/types').CandidateSchedule['combination']) => Promise<void>} */
+const scheduleRunner = async schedule => new Promise(resolve => {
+    scheduleEnd = resolve;
+    openRequests = requestsCount = schedule.length;
+    showProgress();
+    schedule.forEach(comb => {
+        const targetSocket = vmSocket.get(comb.vmId);
+        if (!targetSocket) return;
+
+        // console.info(`Sending task #${comb.task.id} to VM #${comb.vmId}`);
+        targetSocket.write(createMessage.runTask(comb.task.id, comb.task.hardness, comb.vmPower));
+    });
+});
 
 server.on('connection', socket => {
     console.info(`Connection from ${socket.localAddress}:${socket.localPort}`);
@@ -38,11 +63,6 @@ server.on('connection', socket => {
                     id: res.register.id,
                     lastMessage: now,
                     lastPing: -1,
-                    power: res.register.power,
-                    setPower: power => {
-                        if (!vm) return;
-                        vm.power = power;
-                    }
                 };
                 vmSocket.set(vm.id, socket);
                 virtualMachines.add(vm);
@@ -50,19 +70,12 @@ server.on('connection', socket => {
 
                 if (virtualMachines.size === config.virtualMachinesCount) {
                     debugger
-                    eoo(virtualMachines, async schedule => new Promise(resolve => {
-                        scheduleEnd = resolve;
-                        openRequests = schedule.length;
-                        schedule.forEach(comb => {
-                            const targetSocket = vmSocket.get(comb.vmId);
-                            if (!targetSocket) return;
-
-                            console.info(`Sending task #${comb.task.id} to VM #${comb.vmId}`);
-                            targetSocket.write(createMessage.runTask(comb.task.id, comb.task.hardness, comb.vmPower));
-                        });
-                    }))
+                    eoo(virtualMachines, scheduleRunner)
                         .then(optimal => {
-
+                            regression(optimal, scheduleRunner)
+                                .then(res => {
+                                    debugger
+                                });
                         });
                 }
 
@@ -84,9 +97,12 @@ server.on('connection', socket => {
                 socket.end();
                 return;
             } else if (res?.taskResponse) {
-                console.info(`Task #${res.taskResponse.taskId} response received`);
+                // console.info(`Task #${res.taskResponse.taskId} response received`);
                 openRequests--;
-                if (openRequests === 0) scheduleEnd();
+                if (openRequests === 0) {
+                    scheduleEnd();
+                    stopProgress();
+                }
             }
         });
 

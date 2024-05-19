@@ -12,6 +12,35 @@ const id = crypto.randomUUID();
 let power = randomVmPower();
 console.info(`VM startup power: ${power}`);
 
+/** @type {Array<() => Promise<void>>} */
+const taskQueue = [];
+let runningTasks = 0;
+const concurrentLimit = 1;
+
+/**
+ * 
+ * @param {() => Promise<void>} cb 
+ */
+const addToQueue = (cb) => {
+    taskQueue.push(cb);
+    checkToRun();
+};
+
+const checkToRun = () => {
+    if (runningTasks + 1 <= concurrentLimit) {
+        const task = taskQueue.shift();
+        if (!task) return false;
+        runningTasks++;
+        task()
+            .then(() => {
+                runningTasks--;
+                checkToRun();
+            });
+        return true;
+    }
+    return false;
+};
+
 const socket = new net.Socket();
 
 socket.once('connect', () => {
@@ -24,13 +53,15 @@ socket.once('connect', () => {
 
     socket.on('data', chunk => {
         const messages = messageResolver(chunk);
-        messages.forEach(async res => {
+        messages.forEach(res => {
             if (res?.runTask) {
-                console.info(`Solving ${res.runTask.taskId}...`);
-                // threadSleep(power * res.runTask.hardness); // faking task makespan
-                await new Promise(r => setTimeout(r, res.runTask.power * res.runTask.hardness));
-                console.info(`Task ${res.runTask.taskId} done.`);
-                socket.write(createMessage.taskResponse(res.runTask.taskId));
+                addToQueue(async () => {
+                    // console.info(`Solving ${res.runTask.taskId}...`);
+                    // threadSleep(power * res.runTask.hardness); // faking task makespan
+                    await new Promise(r => setTimeout(r, (res.runTask.power * res.runTask.hardness) / 20));
+                    // console.info(`Task ${res.runTask.taskId} done.`);
+                    socket.write(createMessage.taskResponse(res.runTask.taskId));
+                });
             } else if (res?.setPower) {
                 power = res.setPower.amount;
                 console.info(`VM power set to ${power}`);

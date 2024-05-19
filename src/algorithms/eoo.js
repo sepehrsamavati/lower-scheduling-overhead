@@ -39,7 +39,7 @@ export default async function (virtualMachines, scheduleRunner) {
          * @param {import('../common/types.js').CandidateSchedule} currentCombination 
          * @returns 
          */
-        const generateCombinations = (currentCombination = { combination: [], createCombination: () => { }, estimatedTime: -1 }) => {
+        const generateCombinations = (currentCombination = { combination: [], vmPowerMap: new Map(), createCombination: () => { }, time: -1 }) => {
             if (currentCombination.combination.length === uniqueTasks.size) {
                 serializedSchedules.add(JSON.stringify(currentCombination.combination.slice().sort((a, b) => a.task.id - b.task.id)));
                 return;
@@ -51,7 +51,8 @@ export default async function (virtualMachines, scheduleRunner) {
                     generateCombinations({
                         combination: [...currentCombination.combination, combination],
                         createCombination: () => { },
-                        estimatedTime: -1
+                        vmPowerMap: new Map(),
+                        time: -1
                     });
                 }
             }
@@ -93,11 +94,11 @@ export default async function (virtualMachines, scheduleRunner) {
         for (let i = 0; i < targetCount; i++) {
 
             console.log("Shuffling VM power...");
-            _virtualMachines.forEach(vm => vm.setPower(randomVmPower()));
 
             /** @type {import('../common/types.js').CandidateSchedule} */
             const schedule = {
                 combination: [],
+                vmPowerMap: new Map(),
                 createCombination: tasks => {
                     schedule.combination = [];
                     const tasksToAssign = [...tasks];
@@ -127,14 +128,18 @@ export default async function (virtualMachines, scheduleRunner) {
                         .map(([vmId, vmTasks]) => {
                             vmTasks.forEach(id => {
                                 const task = tasks.find(t => t.id === id);
-                                const vm = _virtualMachines.find(vm => vm.id === vmId);
-                                if (task && vm)
-                                    schedule.combination.push({ vmId, task, vmPower: vm.power })
+                                const vmPower = schedule.vmPowerMap.get(vmId);
+                                if (task && vmPower)
+                                    schedule.combination.push({ vmId, task, vmPower });
                             });
                         });
                 },
-                estimatedTime: -1
+                time: -1
             };
+
+            _virtualMachines.forEach(vm => {
+                schedule.vmPowerMap.set(vm.id, randomVmPower());
+            });
 
             schedule.createCombination(_tasks);
 
@@ -142,7 +147,7 @@ export default async function (virtualMachines, scheduleRunner) {
         }
     };
 
-    randomAssign(5);
+    randomAssign(30);
 
     // candidateSchedules.forEach(schedule => {
     //     let maxVmTime = 0;
@@ -163,16 +168,16 @@ export default async function (virtualMachines, scheduleRunner) {
     for (const schedule of candidateSchedules) {
         const start = performance.now();
         await scheduleRunner(schedule.combination);
-        schedule.estimatedTime = performance.now() - start;
+        schedule.time = performance.now() - start;
     }
     debugger
 
-    const averageTime = candidateSchedules.map(s => s.estimatedTime).reduce((a, b) => a + b) / candidateSchedules.length;
+    const averageTime = candidateSchedules.map(s => s.time).reduce((a, b) => a + b) / candidateSchedules.length;
 
     /** @type {import('../common/types.js').CandidateSchedule[]} */
     const goodEnough = [];
 
-    candidateSchedules.filter(s => s.estimatedTime < averageTime).forEach(s => goodEnough.push(s));
+    candidateSchedules.filter(s => s.time < averageTime).forEach(s => goodEnough.push(s));
 
     /** @type {import('../common/types.js').CandidateSchedule[]} */
     const selectedSubset = [];
@@ -181,7 +186,7 @@ export default async function (virtualMachines, scheduleRunner) {
         const current = candidateSchedules[i];
         const next = candidateSchedules[i + 1];
         if (current && next) {
-            if (current.estimatedTime < next.estimatedTime)
+            if (current.time < next.time)
                 selectedSubset.push(current);
             else
                 selectedSubset.push(next);
