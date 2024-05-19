@@ -4,18 +4,14 @@ import "./common/noProcessExit.js";
 import config from "./common/config.js";
 import messageResolver, { createMessage } from "./common/messageResolver.js";
 
-/**
- * @typedef {{ id: string; lastMessage: number; lastPing: number; }} VMInfo
- */
-
-/** @type {Set<VMInfo>} */
+/** @type {import('./types').VirtualMachinesReference} */
 const virtualMachines = new Set();
 
 const server = net.createServer();
 
 server.on('connection', socket => {
     console.info(`Connection from ${socket.localAddress}:${socket.localPort}`);
-    /** @type {VMInfo | null} */
+    /** @type {import('./types').VirtualMachineReference | null} */
     let vm = null;
     /** @type {NodeJS.Timeout | number} */
     let pingTimeout = 0;
@@ -54,12 +50,12 @@ server.on('connection', socket => {
             pingTimeout = setTimeout(() => {
                 console.info(`No ping from VM #${id}`);
             }, 5e3);
-        } else if(res?.close) {
+        } else if (res?.close) {
             console.info(`VM requested close #${vm.id}`);
             dispose();
             socket.end();
             return;
-        } else if(res?.taskResponse) {
+        } else if (res?.taskResponse) {
             console.info(`Task #${res.taskResponse.taskId} response received`);
         }
 

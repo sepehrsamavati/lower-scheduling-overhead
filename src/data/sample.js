@@ -10,11 +10,7 @@ const workLoads = Object.freeze([
 
 let taskIdCursor = 0;
 
-/**
- * @typedef {Set<{ id: number; hardness: number; }>} Task
- */
-
-/** @type {Task} */
+/** @type {import('../types').Tasks} */
 const tasks = new Set();
 
 workLoads.forEach(hardness => {
@@ -24,7 +20,7 @@ workLoads.forEach(hardness => {
     });
 });
 
-/** @type {Map<number, { task: Task; status: '' | 'assigning' | 'processing' | 'done'; }>} */
+/** @type {import('../types').AssignedTasks} */
 const assignedTasks = new Map();
 
 export default assignedTasks;
