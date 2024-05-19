@@ -23,4 +23,7 @@ export type Combination = {
     vmId: VirtualMachineReference['id'];
 };
 
-export type CandidateSchedule = Array<Combination>;
+export type CandidateSchedule = {
+    combination: Array<Combination>;
+    estimatedTime: number;
+};
