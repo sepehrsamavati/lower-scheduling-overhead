@@ -5,23 +5,23 @@ import arrayShuffle from '../common/arrayShuffle.js';
 
 /**
  * 
- * @param {import('../types').VirtualMachinesReference} virtualMachines 
- * @param {(schedule: import('../types').CandidateSchedule['combination']) => Promise<void>} scheduleRunner
+ * @param {import('../common/types.js').VirtualMachinesReference} virtualMachines 
+ * @param {(schedule: import('../common/types.js').CandidateSchedule['combination']) => Promise<void>} scheduleRunner
  */
 export default async function (virtualMachines, scheduleRunner) {
     const _tasks = [...tasks];
     const _virtualMachines = [...virtualMachines];
 
-    /** @type {import('../types').CandidateSchedule[]} */
+    /** @type {import('../common/types.js').CandidateSchedule[]} */
     let candidateSchedules = [];
 
-    /** @type {import('../types').Combination[]} */
+    /** @type {import('../common/types.js').Combination[]} */
     const combinations = [];
 
     for (let i = 0; i < _tasks.length; i++) {
         const task = _tasks[i];
         for (let j = 0; j < _virtualMachines.length; j++) {
-            /** @type {import('../types').CandidateSchedule} */
+            /** @type {import('../common/types.js').CandidateSchedule} */
             combinations.push({
                 task, vmId: _virtualMachines[j].id
             });
@@ -35,7 +35,7 @@ export default async function (virtualMachines, scheduleRunner) {
 
         /**
          * 
-         * @param {import('../types').CandidateSchedule} currentCombination 
+         * @param {import('../common/types.js').CandidateSchedule} currentCombination 
          * @returns 
          */
         const generateCombinations = (currentCombination = { combination: [], estimatedTime: -1 }) => {
@@ -112,7 +112,7 @@ export default async function (virtualMachines, scheduleRunner) {
                 }
             }
 
-            /** @type {import('../types').CandidateSchedule} */
+            /** @type {import('../common/types.js').CandidateSchedule} */
             const schedule = {
                 combination: [],
                 estimatedTime: -1
@@ -158,13 +158,13 @@ export default async function (virtualMachines, scheduleRunner) {
 
     const averageTime = candidateSchedules.map(s => s.estimatedTime).reduce((a, b) => a + b) / candidateSchedules.length;
 
-    /** @type {import('../types').CandidateSchedule[]} */
+    /** @type {import('../common/types.js').CandidateSchedule[]} */
     const goodEnough = [];
 
     candidateSchedules.filter(s => s.estimatedTime < averageTime).forEach(s => goodEnough.push(s));
 
 
-    /** @type {import('../types').CandidateSchedule[]} */
+    /** @type {import('../common/types.js').CandidateSchedule[]} */
     const selectedSubset = [];
 
     for (let i = 0; i < candidateSchedules.length; i++) {

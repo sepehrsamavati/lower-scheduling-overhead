@@ -8,8 +8,8 @@ import config from "./common/config.js";
 import messageResolver, { createMessage } from "./common/messageResolver.js";
 
 const id = crypto.randomUUID();
-const power = Math.round(250 + (Math.random() * 750));
-console.info(`VM MIPS: ${power}`);
+const power = Math.round(config.virtualMachine.minPower + (Math.random() * (config.virtualMachine.maxPower - config.virtualMachine.minPower)));
+console.info(`VM Power: ${power}`);
 
 const socket = new net.Socket();
 
@@ -19,7 +19,7 @@ socket.once('connect', () => {
 
     const pingTimer = setInterval(() => {
         socket.write(createMessage.ping());
-    }, 1e3).unref();
+    }, config.pingInterval).unref();
 
     socket.on('data', chunk => {
         const messages = messageResolver(chunk);
@@ -36,7 +36,7 @@ socket.once('connect', () => {
 });
 
 socket.connect({
-    host: "127.0.0.1",
+    host: config.leaderHost,
     port: config.leaderPort
 });
 

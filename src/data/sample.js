@@ -10,7 +10,7 @@ const workLoads = Object.freeze([
 
 let taskIdCursor = 0;
 
-/** @type {import('../types').Tasks} */
+/** @type {import('../common/types').Tasks} */
 const tasks = new Set();
 
 workLoads.forEach(hardness => {
@@ -20,7 +20,7 @@ workLoads.forEach(hardness => {
     });
 });
 
-/** @type {import('../types').AssignedTasks} */
+/** @type {import('../common/types').AssignedTasks} */
 const assignedTasks = new Map();
 
 export default assignedTasks;

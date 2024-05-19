@@ -5,9 +5,9 @@ import config from "./common/config.js";
 import messageResolver, { createMessage } from "./common/messageResolver.js";
 import eoo from "./algorithms/eoo.js";
 
-/** @type {import('./types').VirtualMachinesReference} */
+/** @type {import('./common/types.js').VirtualMachinesReference} */
 const virtualMachines = new Set();
-/** @type {Map<import('./types').VirtualMachineReference['id'], net.Socket>} */
+/** @type {Map<import('./common/types.js').VirtualMachineReference['id'], net.Socket>} */
 const vmSocket = new Map();
 
 let openRequests = 0;
@@ -17,7 +17,7 @@ const server = net.createServer();
 
 server.on('connection', socket => {
     console.info(`Connection from ${socket.localAddress}:${socket.localPort}`);
-    /** @type {import('./types').VirtualMachineReference | null} */
+    /** @type {import('./common/types.js').VirtualMachineReference | null} */
     let vm = null;
     /** @type {NodeJS.Timeout | number} */
     let pingTimeout = 0;
@@ -43,7 +43,7 @@ server.on('connection', socket => {
                 virtualMachines.add(vm);
                 console.info(`VM registered #${res.register.id}`);
 
-                if (virtualMachines.size === 4) {
+                if (virtualMachines.size === config.virtualMachinesCount) {
                     debugger
                     eoo(virtualMachines, async schedule => new Promise(resolve => {
                         scheduleEnd = resolve;
@@ -72,7 +72,7 @@ server.on('connection', socket => {
                 const id = vm.id;
                 pingTimeout = setTimeout(() => {
                     console.info(`No ping from VM #${id}`);
-                }, 5e3);
+                }, config.pingTimeout);
             } else if (res?.close) {
                 console.info(`VM requested close #${vm.id}`);
                 dispose();
@@ -100,7 +100,7 @@ server.on('connection', socket => {
     });
 });
 
-server.once('listening', () => console.info(`Leader listening on 127.0.0.1:${config.leaderPort}`));
+server.once('listening', () => console.info(`Leader listening on port ${config.leaderPort}`));
 
 server.listen(config.leaderPort);
 
