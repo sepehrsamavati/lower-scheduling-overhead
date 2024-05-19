@@ -1,9 +1,9 @@
 // @ts-check
 import net from "node:net";
 import "./common/noProcessExit.js";
+import eoo from "./algorithms/eoo.js";
 import config from "./common/config.js";
 import messageResolver, { createMessage } from "./common/messageResolver.js";
-import eoo from "./algorithms/eoo.js";
 
 /** @type {import('./common/types.js').VirtualMachinesReference} */
 const virtualMachines = new Set();
@@ -37,7 +37,12 @@ server.on('connection', socket => {
                 vm = {
                     id: res.register.id,
                     lastMessage: now,
-                    lastPing: -1
+                    lastPing: -1,
+                    power: res.register.power,
+                    setPower: power => {
+                        if (!vm) return;
+                        vm.power = power;
+                    }
                 };
                 vmSocket.set(vm.id, socket);
                 virtualMachines.add(vm);
@@ -53,7 +58,7 @@ server.on('connection', socket => {
                             if (!targetSocket) return;
 
                             console.info(`Sending task #${comb.task.id} to VM #${comb.vmId}`);
-                            targetSocket.write(createMessage.runTask(comb.task.id, comb.task.hardness));
+                            targetSocket.write(createMessage.runTask(comb.task.id, comb.task.hardness, comb.vmPower));
                         });
                     }))
                         .then(optimal => {

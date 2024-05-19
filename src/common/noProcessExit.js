@@ -3,6 +3,7 @@ import process from "node:process";
 const nilFunc = (e) => {
     if(e instanceof Error)
         console.error(e);
+    return;
 };
 
 const events = Object.freeze([

@@ -2,6 +2,7 @@
 
 import tasks from '../data/eoo.js';
 import arrayShuffle from '../common/arrayShuffle.js';
+import randomVmPower from '../common/randomVmPower.js';
 
 /**
  * 
@@ -23,7 +24,7 @@ export default async function (virtualMachines, scheduleRunner) {
         for (let j = 0; j < _virtualMachines.length; j++) {
             /** @type {import('../common/types.js').CandidateSchedule} */
             combinations.push({
-                task, vmId: _virtualMachines[j].id
+                task, vmId: _virtualMachines[j].id, vmPower: -1
             });
         }
     }
@@ -38,7 +39,7 @@ export default async function (virtualMachines, scheduleRunner) {
          * @param {import('../common/types.js').CandidateSchedule} currentCombination 
          * @returns 
          */
-        const generateCombinations = (currentCombination = { combination: [], estimatedTime: -1 }) => {
+        const generateCombinations = (currentCombination = { combination: [], createCombination: () => { }, estimatedTime: -1 }) => {
             if (currentCombination.combination.length === uniqueTasks.size) {
                 serializedSchedules.add(JSON.stringify(currentCombination.combination.slice().sort((a, b) => a.task.id - b.task.id)));
                 return;
@@ -49,6 +50,7 @@ export default async function (virtualMachines, scheduleRunner) {
                 if (!currentCombination.combination.some(comb => comb.task.id === combination.task.id)) {
                     generateCombinations({
                         combination: [...currentCombination.combination, combination],
+                        createCombination: () => { },
                         estimatedTime: -1
                     });
                 }
@@ -89,49 +91,58 @@ export default async function (virtualMachines, scheduleRunner) {
 
     const randomAssign = (targetCount = 30) => {
         for (let i = 0; i < targetCount; i++) {
-            const tasksToAssign = [..._tasks];
-            arrayShuffle(tasksToAssign);
 
-            /** @type {Map<string, number[]>} */
-            const vmTaskMap = new Map();
-
-            while (tasksToAssign.length > 0) {
-                for (let j = 0; j < _virtualMachines.length; j++) {
-                    const task = tasksToAssign.pop();
-                    if (!task)
-                        break;
-
-                    const vmId = _virtualMachines[j].id;
-
-                    const vmTasks = vmTaskMap.get(vmId);
-
-                    if (vmTasks)
-                        vmTasks.push(task.id);
-                    else
-                        vmTaskMap.set(vmId, [task.id]);
-                }
-            }
+            console.log("Shuffling VM power...");
+            _virtualMachines.forEach(vm => vm.setPower(randomVmPower()));
 
             /** @type {import('../common/types.js').CandidateSchedule} */
             const schedule = {
                 combination: [],
+                createCombination: tasks => {
+                    schedule.combination = [];
+                    const tasksToAssign = [...tasks];
+                    arrayShuffle(tasksToAssign);
+
+                    /** @type {Map<string, number[]>} */
+                    const vmTaskMap = new Map();
+
+                    while (tasksToAssign.length > 0) {
+                        for (let j = 0; j < _virtualMachines.length; j++) {
+                            const task = tasksToAssign.pop();
+                            if (!task)
+                                break;
+
+                            const vmId = _virtualMachines[j].id;
+
+                            const vmTasks = vmTaskMap.get(vmId);
+
+                            if (vmTasks)
+                                vmTasks.push(task.id);
+                            else
+                                vmTaskMap.set(vmId, [task.id]);
+                        }
+                    }
+
+                    [...vmTaskMap.entries()]
+                        .map(([vmId, vmTasks]) => {
+                            vmTasks.forEach(id => {
+                                const task = tasks.find(t => t.id === id);
+                                const vm = _virtualMachines.find(vm => vm.id === vmId);
+                                if (task && vm)
+                                    schedule.combination.push({ vmId, task, vmPower: vm.power })
+                            });
+                        });
+                },
                 estimatedTime: -1
             };
 
-            [...vmTaskMap.entries()]
-                .map(([vmId, tasks]) => {
-                    tasks.forEach(id => {
-                        const task = _tasks.find(t => t.id === id);
-                        if (task)
-                            schedule.combination.push({ vmId, task })
-                    });
-                });
+            schedule.createCombination(_tasks);
 
             candidateSchedules.push(schedule);
         }
     };
 
-    randomAssign(30);
+    randomAssign(5);
 
     // candidateSchedules.forEach(schedule => {
     //     let maxVmTime = 0;
@@ -162,7 +173,6 @@ export default async function (virtualMachines, scheduleRunner) {
     const goodEnough = [];
 
     candidateSchedules.filter(s => s.estimatedTime < averageTime).forEach(s => goodEnough.push(s));
-
 
     /** @type {import('../common/types.js').CandidateSchedule[]} */
     const selectedSubset = [];

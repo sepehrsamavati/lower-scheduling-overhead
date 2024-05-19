@@ -3,7 +3,8 @@ const messageTypes = Object.freeze({
     register: "REG",
     close: "CLS",
     runTask: "RUN",
-    taskResponse: "RES"
+    taskResponse: "RES",
+    setPower: "SPW"
 });
 
 export default messageTypes;
