@@ -3,12 +3,13 @@
 import net from "node:net";
 import crypto from "node:crypto";
 import "./common/noProcessExit.js";
-import threadSleep from "thread-sleep";
+// import threadSleep from "thread-sleep";
 import config from "./common/config.js";
 import messageResolver, { createMessage } from "./common/messageResolver.js";
 
 const id = crypto.randomUUID();
 const power = Math.round(250 + (Math.random() * 750));
+console.info(`VM MIPS: ${power}`);
 
 const socket = new net.Socket();
 
@@ -21,12 +22,16 @@ socket.once('connect', () => {
     }, 1e3).unref();
 
     socket.on('data', chunk => {
-        const res = messageResolver(chunk);
-
-        if (res?.runTask) {
-            threadSleep(power * res.runTask.hardness); // faking task makespan
-            socket.write(createMessage.taskResponse(res.runTask.taskId));
-        }
+        const messages = messageResolver(chunk);
+        messages.forEach(async res => {
+            if (res?.runTask) {
+                console.info(`Solving ${res.runTask.taskId}...`);
+                // threadSleep(power * res.runTask.hardness); // faking task makespan
+                await new Promise(r => setTimeout(r, power * res.runTask.hardness));
+                console.info(`Task ${res.runTask.taskId} done.`);
+                socket.write(createMessage.taskResponse(res.runTask.taskId));
+            }
+        });
     });
 });
 

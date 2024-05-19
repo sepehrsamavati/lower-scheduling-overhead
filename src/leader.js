@@ -3,9 +3,15 @@ import net from "node:net";
 import "./common/noProcessExit.js";
 import config from "./common/config.js";
 import messageResolver, { createMessage } from "./common/messageResolver.js";
+import eoo from "./algorithms/eoo.js";
 
 /** @type {import('./types').VirtualMachinesReference} */
 const virtualMachines = new Set();
+/** @type {Map<import('./types').VirtualMachineReference['id'], net.Socket>} */
+const vmSocket = new Map();
+
+let openRequests = 0;
+let scheduleEnd = () => { };
 
 const server = net.createServer();
 
@@ -24,42 +30,63 @@ server.on('connection', socket => {
 
     socket.on('data', chunk => {
         const now = Date.now();
-        const res = messageResolver(chunk);
+        const messages = messageResolver(chunk);
 
-        if (res?.register) {
-            vm = {
-                id: res.register.id,
-                lastMessage: now,
-                lastPing: -1
-            };
-            virtualMachines.add(vm);
-            console.info(`VM registered #${res.register.id}`);
+        messages.forEach(res => {
+            if (res?.register) {
+                vm = {
+                    id: res.register.id,
+                    lastMessage: now,
+                    lastPing: -1
+                };
+                vmSocket.set(vm.id, socket);
+                virtualMachines.add(vm);
+                console.info(`VM registered #${res.register.id}`);
 
-            // console.info(`Sending task #${++taskIdCursor} to VM #${vm.id}`);
-            // socket.write(createMessage.runTask(taskIdCursor, 5));
+                if (virtualMachines.size === 4) {
+                    debugger
+                    eoo(virtualMachines, async schedule => new Promise(resolve => {
+                        scheduleEnd = resolve;
+                        openRequests = schedule.length;
+                        schedule.forEach(comb => {
+                            const targetSocket = vmSocket.get(comb.vmId);
+                            if (!targetSocket) return;
 
-            return;
-        }
-        else if (!vm)
-            return;
+                            console.info(`Sending task #${comb.task.id} to VM #${comb.vmId}`);
+                            targetSocket.write(createMessage.runTask(comb.task.id, comb.task.hardness));
+                        });
+                    }))
+                        .then(optimal => {
 
-        if (typeof res?.ping === "number") {
-            vm.lastPing = res.ping;
-            clearTimeout(pingTimeout);
-            const id = vm.id;
-            pingTimeout = setTimeout(() => {
-                console.info(`No ping from VM #${id}`);
-            }, 5e3);
-        } else if (res?.close) {
-            console.info(`VM requested close #${vm.id}`);
-            dispose();
-            socket.end();
-            return;
-        } else if (res?.taskResponse) {
-            console.info(`Task #${res.taskResponse.taskId} response received`);
-        }
+                        });
+                }
 
-        vm.lastMessage = now;
+                return;
+            }
+            else if (!vm)
+                return;
+
+            if (typeof res?.ping === "number") {
+                vm.lastPing = res.ping;
+                clearTimeout(pingTimeout);
+                const id = vm.id;
+                pingTimeout = setTimeout(() => {
+                    console.info(`No ping from VM #${id}`);
+                }, 5e3);
+            } else if (res?.close) {
+                console.info(`VM requested close #${vm.id}`);
+                dispose();
+                socket.end();
+                return;
+            } else if (res?.taskResponse) {
+                console.info(`Task #${res.taskResponse.taskId} response received`);
+                openRequests--;
+                if (openRequests === 0) scheduleEnd();
+            }
+        });
+
+        if (vm)
+            vm.lastMessage = now;
     });
 
     socket.on('close', () => {

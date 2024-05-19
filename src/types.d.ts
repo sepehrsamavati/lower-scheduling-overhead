@@ -19,7 +19,7 @@ export type VirtualMachineReference = {
 export type VirtualMachinesReference = Set<VirtualMachineReference>;
 
 export type Combination = {
-    taskId: Task['id'];
+    task: Task;
     vmId: VirtualMachineReference['id'];
 };
 

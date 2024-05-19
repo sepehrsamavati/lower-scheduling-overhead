@@ -1,13 +1,14 @@
 // @ts-check
 
+import tasks from '../data/eoo.js';
 import arrayShuffle from '../common/arrayShuffle.js';
 
 /**
  * 
- * @param {import('../types').Tasks} tasks 
  * @param {import('../types').VirtualMachinesReference} virtualMachines 
+ * @param {(schedule: import('../types').CandidateSchedule['combination']) => Promise<void>} scheduleRunner
  */
-export default function z(tasks, virtualMachines) {
+export default async function (virtualMachines, scheduleRunner) {
     const _tasks = [...tasks];
     const _virtualMachines = [...virtualMachines];
 
@@ -18,11 +19,11 @@ export default function z(tasks, virtualMachines) {
     const combinations = [];
 
     for (let i = 0; i < _tasks.length; i++) {
-        const taskId = _tasks[i].id;
+        const task = _tasks[i];
         for (let j = 0; j < _virtualMachines.length; j++) {
             /** @type {import('../types').CandidateSchedule} */
             combinations.push({
-                taskId, vmId: _virtualMachines[j].id
+                task, vmId: _virtualMachines[j].id
             });
         }
     }
@@ -39,13 +40,13 @@ export default function z(tasks, virtualMachines) {
          */
         const generateCombinations = (currentCombination = { combination: [], estimatedTime: -1 }) => {
             if (currentCombination.combination.length === uniqueTasks.size) {
-                serializedSchedules.add(JSON.stringify(currentCombination.combination.slice().sort((a, b) => a.taskId - b.taskId)));
+                serializedSchedules.add(JSON.stringify(currentCombination.combination.slice().sort((a, b) => a.task.id - b.task.id)));
                 return;
             }
 
             for (let i = 0; i < combinations.length; i++) {
                 const combination = combinations[i];
-                if (!currentCombination.combination.some(task => task.taskId === combination.taskId)) {
+                if (!currentCombination.combination.some(comb => comb.task.id === combination.task.id)) {
                     generateCombinations({
                         combination: [...currentCombination.combination, combination],
                         estimatedTime: -1
@@ -60,7 +61,7 @@ export default function z(tasks, virtualMachines) {
     };
 
     const randomSchedules = (targetCount = 30) => {
-        const uniqueTasks = new Set(combinations.map(c => c.taskId));
+        const uniqueTasks = new Set(combinations.map(c => c.task.id));
         const output = new Set();
         let remaining = Math.pow(_virtualMachines.length, _tasks.length);
 
@@ -72,14 +73,14 @@ export default function z(tasks, virtualMachines) {
                 const randomIndex = Math.floor(Math.random() * combinations.length);
                 const randomTask = combinations[randomIndex];
 
-                if (!usedTaskIds.has(randomTask.taskId)) {
+                if (!usedTaskIds.has(randomTask.task.id)) {
                     currentCombination.push(randomTask);
-                    usedTaskIds.add(randomTask.taskId);
+                    usedTaskIds.add(randomTask.task.id);
                 }
             }
 
             remaining--;
-            output.add(JSON.stringify(currentCombination.slice().sort((a, b) => a.taskId - b.taskId)));
+            output.add(JSON.stringify(currentCombination.slice().sort((a, b) => a.task.id - b.task.id)));
         }
 
         const res = Array.from(output).map(combo => JSON.parse(combo));
@@ -119,7 +120,11 @@ export default function z(tasks, virtualMachines) {
 
             [...vmTaskMap.entries()]
                 .map(([vmId, tasks]) => {
-                    tasks.forEach(id => schedule.combination.push({ vmId, taskId: id }));
+                    tasks.forEach(id => {
+                        const task = _tasks.find(t => t.id === id);
+                        if (task)
+                            schedule.combination.push({ vmId, task })
+                    });
                 });
 
             candidateSchedules.push(schedule);
@@ -128,21 +133,28 @@ export default function z(tasks, virtualMachines) {
 
     randomAssign(30);
 
-    candidateSchedules.forEach(schedule => {
-        let maxVmTime = 0;
+    // candidateSchedules.forEach(schedule => {
+    //     let maxVmTime = 0;
 
-        // @ts-ignore
-        const result = Object.groupBy(schedule.combination, ({ vmId }) => vmId);
+    //     // @ts-ignore
+    //     const result = Object.groupBy(schedule.combination, ({ vmId }) => vmId);
 
-        Object.entries(result).forEach(([vmId, combinations]) => {
-            const tasksHardness = combinations.map(c => _tasks.find(t => t.id === c.taskId)?.hardness);
-            const workload = tasksHardness.length ? tasksHardness.reduce((a, b) => a + b) : 0;
-            if (workload > maxVmTime)
-                maxVmTime = workload;
-        });
+    //     Object.entries(result).forEach(([vmId, combinations]) => {
+    //         const tasksHardness = combinations.map(c => _tasks.find(t => t.id === c.taskId)?.hardness);
+    //         const workload = tasksHardness.length ? tasksHardness.reduce((a, b) => a + b) : 0;
+    //         if (workload > maxVmTime)
+    //             maxVmTime = workload;
+    //     });
 
-        schedule.estimatedTime = maxVmTime;
-    });
+    //     schedule.estimatedTime = maxVmTime;
+    // });
+
+    for (const schedule of candidateSchedules) {
+        const start = performance.now();
+        await scheduleRunner(schedule.combination);
+        schedule.estimatedTime = performance.now() - start;
+    }
+    debugger
 
     const averageTime = candidateSchedules.map(s => s.estimatedTime).reduce((a, b) => a + b) / candidateSchedules.length;
 
@@ -169,37 +181,5 @@ export default function z(tasks, virtualMachines) {
 
     const intersection = goodEnough.filter(value => selectedSubset.includes(value));
 
-    debugger
+    return intersection;
 }
-
-z(
-    new Set([
-        { id: 1, hardness: 6 },
-        { id: 2, hardness: 1 },
-        { id: 3, hardness: 2 },
-        { id: 4, hardness: 6 },
-        { id: 5, hardness: 8 },
-        { id: 6, hardness: 5 },
-        { id: 7, hardness: 5 },
-        { id: 8, hardness: 9 },
-        { id: 9, hardness: 7 },
-        { id: 10, hardness: 6 },
-        { id: 11, hardness: 3 },
-        { id: 12, hardness: 2 },
-        { id: 13, hardness: 8 },
-        { id: 14, hardness: 1 },
-        { id: 15, hardness: 4 },
-        { id: 16, hardness: 4 },
-        { id: 17, hardness: 8 },
-        { id: 18, hardness: 2 },
-        { id: 19, hardness: 1 },
-        { id: 20, hardness: 9 },
-    ]),
-    new Set([
-        { id: 'vm1', lastMessage: 0, lastPing: 0 },
-        { id: 'vm2', lastMessage: 0, lastPing: 0 },
-        { id: 'vm3', lastMessage: 0, lastPing: 0 },
-        { id: 'vm4', lastMessage: 0, lastPing: 0 },
-        { id: 'vm5', lastMessage: 0, lastPing: 0 },
-    ])
-);
