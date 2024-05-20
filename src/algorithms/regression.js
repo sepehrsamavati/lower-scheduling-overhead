@@ -1,6 +1,7 @@
 // @ts-check
 
 import { readSync } from '../data/taskIO.js';
+import { saveKeyValue } from '../common/stats.js';
 
 /**
  * 
@@ -10,6 +11,11 @@ import { readSync } from '../data/taskIO.js';
 export default async function (optimalSchedules, scheduleRunner) {
     const groups = [readSync('c1'), readSync('c2'), readSync('c3'), readSync('c4')];
 
+    /** 
+     * @type {{
+     *  [key: number]: number[];
+     * }}
+     */
     const times = {};
 
     let counter = 0;
@@ -23,6 +29,12 @@ export default async function (optimalSchedules, scheduleRunner) {
             schedule.time = time;
             times[counter].push(time);
         }
+    }
+
+    counter = 0;
+    for (const schedule of optimalSchedules) {
+        ++counter;
+        await saveKeyValue(`r_${schedule.id}`, Object.entries(times).map((time, index) => ({ key: groups[index].length.toString(), value: time[1][counter] })));
     }
 
     debugger

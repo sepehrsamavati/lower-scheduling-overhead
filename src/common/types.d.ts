@@ -29,4 +29,5 @@ export type CandidateSchedule = {
     vmPowerMap: Map<VirtualMachineReference['id'], number>;
     createCombination: (tasks: Array<Task>) => void;
     time: number;
+    id: number;
 };

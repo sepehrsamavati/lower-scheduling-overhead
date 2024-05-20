@@ -3,6 +3,7 @@
 import tasks from '../data/eoo.js';
 import arrayShuffle from '../common/arrayShuffle.js';
 import randomVmPower from '../common/randomVmPower.js';
+import { saveKeyValue } from '../common/stats.js';
 
 /**
  * 
@@ -39,7 +40,7 @@ export default async function (virtualMachines, scheduleRunner) {
          * @param {import('../common/types.js').CandidateSchedule} currentCombination 
          * @returns 
          */
-        const generateCombinations = (currentCombination = { combination: [], vmPowerMap: new Map(), createCombination: () => { }, time: -1 }) => {
+        const generateCombinations = (currentCombination = { combination: [], vmPowerMap: new Map(), createCombination: () => { }, id: 1, time: -1 }) => {
             if (currentCombination.combination.length === uniqueTasks.size) {
                 serializedSchedules.add(JSON.stringify(currentCombination.combination.slice().sort((a, b) => a.task.id - b.task.id)));
                 return;
@@ -52,7 +53,8 @@ export default async function (virtualMachines, scheduleRunner) {
                         combination: [...currentCombination.combination, combination],
                         createCombination: () => { },
                         vmPowerMap: new Map(),
-                        time: -1
+                        time: -1,
+                        id: currentCombination.id
                     });
                 }
             }
@@ -134,7 +136,8 @@ export default async function (virtualMachines, scheduleRunner) {
                             });
                         });
                 },
-                time: -1
+                time: -1,
+                id: (candidateSchedules.at(candidateSchedules.length - 1)?.id ?? 0) + 1
             };
 
             _virtualMachines.forEach(vm => {
@@ -172,6 +175,8 @@ export default async function (virtualMachines, scheduleRunner) {
     }
     debugger
 
+    saveKeyValue("eoo", candidateSchedules.map((s, index) => ({ key: `s${index + 1}`, value: s.time })));
+
     const averageTime = candidateSchedules.map(s => s.time).reduce((a, b) => a + b) / candidateSchedules.length;
 
     /** @type {import('../common/types.js').CandidateSchedule[]} */
@@ -195,6 +200,8 @@ export default async function (virtualMachines, scheduleRunner) {
     }
 
     const intersection = goodEnough.filter(value => selectedSubset.includes(value));
+
+    saveKeyValue("eoo_intersection", intersection.map((s, index) => ({ key: `s${index + 1}`, value: s.time })));
 
     return intersection;
 }
