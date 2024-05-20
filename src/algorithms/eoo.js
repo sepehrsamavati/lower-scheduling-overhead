@@ -201,7 +201,7 @@ export default async function (virtualMachines, scheduleRunner) {
 
     const intersection = goodEnough.filter(value => selectedSubset.includes(value));
 
-    saveKeyValue("eoo_intersection", intersection.map((s, index) => ({ key: `s${index + 1}`, value: s.time })));
+    saveKeyValue("eoo_intersection", intersection.map(s => ({ key: s.id.toString(), value: s.time })));
 
     return intersection;
 }

@@ -11,6 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "chart.js": "^3.9.1",
+    "chartjs-node-canvas": "^4.1.6",
     "dotenv": "^16.4.5",
     "thread-sleep": "^2.2.0"
   }
