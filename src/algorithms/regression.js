@@ -34,10 +34,41 @@ export default async function (optimalSchedules, scheduleRunner) {
     const timeEntires = Object.entries(times);
     const n = timeEntires.length;
 
+    const schedulesRegression = optimalSchedules.map(schedule => ({
+        origin: schedule,
+        /**
+         * @param {number} x
+         * @returns {number}
+         */
+        regressionCalculator: x => 0
+    }));
+
     counter = 0;
-    for (const schedule of optimalSchedules) {
+    for (const schedule of schedulesRegression) {
         ++counter;
-        await saveKeyValue(`r_${schedule.id}`, timeEntires.map((time, index) => ({ key: groups[index].length.toString(), value: time[1][counter] })));
+
+        const points = timeEntires.map((time, index) => ({ x: groups[index].length, y: time[1][counter] }));
+
+        await saveKeyValue(`r_${schedule.origin.id}`, points.map(p => ({ key: p.x.toString(), value: p.y })));
+
+        const xAverage = Math.round(points.map(p => p.x).reduce((a, b) => a + b) / points.length);
+        const yAverage = Math.round(points.map(p => p.y).reduce((a, b) => a + b) / points.length);
+
+        const xVariance = points.map(item => (item.x - xAverage) ** 2).reduce((a, b) => a + b);
+        const yVariance = points.map(item => (item.y - yAverage) ** 2).reduce((a, b) => a + b);
+
+        const xStandardDeviation = Math.sqrt(xVariance / points.length);
+        const yStandardDeviation = Math.sqrt(yVariance / points.length);
+
+        const correlation = (points.map(item => (item.x - xAverage) * (item.y - yAverage)).reduce((a, b) => a + b)) / Math.sqrt(xVariance * yVariance);
+
+        const b = (correlation * yStandardDeviation) / xStandardDeviation;
+        const A = yAverage - (b * xAverage);
+
+        if (Number.isNaN(b) || Number.isNaN(A))
+            debugger
+
+        schedule.regressionCalculator = x => (b * x) - A;
     }
 
     counter = 0;
