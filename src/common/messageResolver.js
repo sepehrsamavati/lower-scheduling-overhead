@@ -23,6 +23,7 @@ export const createMessage = Object.freeze({
     taskResponse: (taskId) => `${messageTypes.taskResponse},${taskId};`,
     /** @param {number} power */
     setPower: (power) => `${messageTypes.setPower},${power};`,
+    readyToRun: () => `${messageTypes.readyToRun};`,
 });
 
 /**
@@ -45,6 +46,8 @@ export default function (rawBuf) {
                 return { register: { id, power: Number.parseInt(power) } };
             case messageTypes.close:
                 return { close: true };
+            case messageTypes.readyToRun:
+                return { readyToRun: true };
             case messageTypes.runTask: {
                 const [, taskId, hardness, power] = parts;
                 return {

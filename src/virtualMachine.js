@@ -3,13 +3,13 @@
 import net from "node:net";
 import crypto from "node:crypto";
 import "./common/noProcessExit.js";
-// import threadSleep from "thread-sleep";
 import config from "./common/config.js";
 import randomVmPower from "./common/randomVmPower.js";
 import messageResolver, { createMessage } from "./common/messageResolver.js";
 
 const id = crypto.randomUUID();
 let power = randomVmPower();
+let configuring = true;
 console.info(`VM startup power: ${power}`);
 
 /** @type {Array<() => Promise<void>>} */
@@ -58,13 +58,16 @@ socket.once('connect', () => {
                 addToQueue(async () => {
                     // console.info(`Solving ${res.runTask.taskId}...`);
                     // threadSleep(power * res.runTask.hardness); // faking task makespan
-                    await new Promise(r => setTimeout(r, (res.runTask.power * res.runTask.hardness) / 200));
+                    await new Promise(r => setTimeout(r, (res.runTask.power * res.runTask.hardness) / (configuring ? config.configSpeed : 1)));
                     // console.info(`Task ${res.runTask.taskId} done.`);
                     socket.write(createMessage.taskResponse(res.runTask.taskId));
                 });
             } else if (res?.setPower) {
                 power = res.setPower.amount;
                 console.info(`VM power set to ${power}`);
+            } else if (res?.readyToRun) {
+                configuring = false;
+                console.info("VM is ready to run, configuration finished.");
             }
         });
     });

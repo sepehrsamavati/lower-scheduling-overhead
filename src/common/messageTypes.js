@@ -4,7 +4,8 @@ const messageTypes = Object.freeze({
     close: "CLS",
     runTask: "RUN",
     taskResponse: "RES",
-    setPower: "SPW"
+    setPower: "SPW",
+    readyToRun: "RTR"
 });
 
 export default messageTypes;

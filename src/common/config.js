@@ -15,6 +15,7 @@ const config = Object.freeze({
     leaderPort: Number.parseInt(process.env?.LSO_LEADER_PORT ?? '5000'),
     configTaskCount: Number.parseInt(process.env.LSO_CONFIGURE_TASK_COUNT ?? '20'),
     configScheduleCount: Number.parseInt(process.env.LSO_CONFIGURE_SCHEDULE_COUNT ?? '30'),
+    configSpeed: Number.parseInt(process.env.LSO_CONFIGURE_SPEED ?? '1'),
     virtualMachinesCount: Number.parseInt(process.env.LSO_VM_COUNT ?? '5'),
     virtualMachine: Object.freeze({
         minPower: Number.parseInt(process.env?.LSO_VM_MIN_POWER ?? '250'),

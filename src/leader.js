@@ -74,7 +74,7 @@ server.on('connection', socket => {
                         .then(optimal => {
                             regression(optimal, scheduleRunner)
                                 .then(res => {
-                                    debugger
+                                    vmSocket.forEach(socket => socket.write(createMessage.readyToRun()));
                                 });
                         });
                 }
