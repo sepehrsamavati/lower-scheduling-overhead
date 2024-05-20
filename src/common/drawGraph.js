@@ -21,16 +21,19 @@ for (const file of files) {
                 labels: data.map(item => item.key),
                 datasets: [
                     {
+                        label: "Linear",
+                        data: data.map(item => item.value),
+                        borderColor: "#d00000",
+                        type: "line",
+                        borderDash: [5, 5],
+                        borderWidth: 3,
+                        tension: 0.4
+                    },
+                    {
                         label: "Candidate schedules makespan",
                         data: data.map(item => item.value),
                         backgroundColor: "#14213d",
                         type: "bar"
-                    },
-                    {
-                        label: "Linear",
-                        data: data.map(item => item.value),
-                        backgroundColor: "#b5e2fa",
-                        type: "line"
                     }
                 ]
             },
@@ -50,16 +53,19 @@ for (const file of files) {
                 labels: data.map(item => item.key),
                 datasets: [
                     {
+                        label: "Linear",
+                        data: data.map(item => item.value),
+                        borderColor: "#d00000",
+                        type: "line",
+                        borderDash: [5, 5],
+                        borderWidth: 3,
+                        tension: 0.4
+                    },
+                    {
                         label: "Candidate schedules makespan (sorted)",
                         data: data.map(item => item.value),
                         backgroundColor: "#14213d",
                         type: "bar"
-                    },
-                    {
-                        label: "Linear",
-                        data: data.map(item => item.value),
-                        backgroundColor: "#b5e2fa",
-                        type: "line"
                     }
                 ]
             },
@@ -128,7 +134,7 @@ if (regressionData.length) {
         type: 'line'
     }));
 
-    datasets.push({
+    datasets.unshift({
         label: "RLine",
         data: regressionLineData.map(item => item.value),
         backgroundColor: '#000000',
