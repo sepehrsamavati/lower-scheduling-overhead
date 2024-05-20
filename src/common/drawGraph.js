@@ -88,7 +88,7 @@ for (const file of files) {
         });
         await fs.promises.writeFile(`./cache/${file}.png`, buff);
     }
-    else if (file.startsWith('r_') && file.endsWith('.json')) {
+    else if (file.startsWith('r_') && !file.startsWith('r_line') && file.endsWith('.json')) {
         regressionData.push({
             data,
             scheduleId: file.replace('r_', '').replace('.json', ''),
@@ -97,15 +97,16 @@ for (const file of files) {
 }
 
 if (regressionData.length) {
+    const regressionLineData = await readKeyValue("r_line");
     const colors = [
         '#d90429',
         '#f77f00',
         '#5a189a',
         '#38b000',
-        '#89fc00',
+        '#ffc300',
         '#03045e',
         '#343a40',
-        '#d00000',
+        '#07beb8',
         '#7f4f24',
         '#26a9e0',
         '#f72585',
@@ -116,17 +117,32 @@ if (regressionData.length) {
         height: 600,
         backgroundColour: '#e5e5e5'
     });
+
+    /** @type {import('chart.js').ChartDataset[]} */
+    const datasets = regressionData.map((schedule, index) => ({
+        label: `s${schedule.scheduleId}`,
+        data: schedule.data.map(item => item.value),
+        backgroundColor: colors[index % colors.length],
+        borderColor: colors[index % colors.length],
+        borderWidth: 2,
+        type: 'line'
+    }));
+
+    datasets.push({
+        label: "RLine",
+        data: regressionLineData.map(item => item.value),
+        backgroundColor: '#000000',
+        borderColor: '#000000',
+        borderDash: [5, 5],
+        borderWidth: 5,
+        fill: false,
+        type: 'line'
+    });
+
     const buff = chartCanvas.renderToBufferSync({
         data: {
+            datasets,
             labels: regressionData[0].data.map(item => item.key),
-            datasets: regressionData.map((schedule, index) => ({
-                label: `s${schedule.scheduleId}`,
-                data: schedule.data.map(item => item.value),
-                backgroundColor: colors[index % colors.length],
-                borderColor: colors[index % colors.length],
-                borderWidth: 2,
-                type: 'line'
-            }))
         },
         type: "bar"
     });

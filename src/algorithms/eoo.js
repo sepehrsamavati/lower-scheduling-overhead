@@ -1,9 +1,10 @@
 // @ts-check
 
 import tasks from '../data/eoo.js';
+import config from '../common/config.js';
+import { saveKeyValue } from '../common/stats.js';
 import arrayShuffle from '../common/arrayShuffle.js';
 import randomVmPower from '../common/randomVmPower.js';
-import { saveKeyValue } from '../common/stats.js';
 
 /**
  * 
@@ -150,7 +151,7 @@ export default async function (virtualMachines, scheduleRunner) {
         }
     };
 
-    randomAssign(30);
+    randomAssign(config.configScheduleCount);
 
     // candidateSchedules.forEach(schedule => {
     //     let maxVmTime = 0;
