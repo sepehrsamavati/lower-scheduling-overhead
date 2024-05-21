@@ -8,6 +8,21 @@ const files = fs.readdirSync("./cache").filter(file => !file.includes('.png'));
 
 const regressionData = [];
 
+const colors = [
+    '#d90429',
+    '#f77f00',
+    '#5a189a',
+    '#38b000',
+    '#ffc300',
+    '#03045e',
+    '#343a40',
+    '#07beb8',
+    '#7f4f24',
+    '#26a9e0',
+    '#f72585',
+    '#fb6f92',
+];
+
 for (const file of files) {
     const data = await readKeyValue(file);
     if (file === 'eoo.json') {
@@ -81,12 +96,12 @@ for (const file of files) {
         });
         const buff = chartCanvas.renderToBufferSync({
             data: {
-                labels: data.map(item => item.key),
+                labels: data.map(item => `s${item.key}`),
                 datasets: [
                     {
                         label: "Optimal schedules (intersection) makespan",
                         data: data.map(item => item.value),
-                        backgroundColor: "#fb8500"
+                        backgroundColor: colors,
                     }
                 ]
             },
@@ -104,25 +119,13 @@ for (const file of files) {
 
 if (regressionData.length) {
     const regressionLineData = await readKeyValue("r_line");
-    const colors = [
-        '#d90429',
-        '#f77f00',
-        '#5a189a',
-        '#38b000',
-        '#ffc300',
-        '#03045e',
-        '#343a40',
-        '#07beb8',
-        '#7f4f24',
-        '#26a9e0',
-        '#f72585',
-        '#fb6f92',
-    ];
     const chartCanvas = new ChartJSNodeCanvas({
         width: 1000,
         height: 600,
         backgroundColour: '#e5e5e5'
     });
+
+    regressionData.sort((a, b) => parseInt(a.scheduleId) - parseInt(b.scheduleId));
 
     /** @type {import('chart.js').ChartDataset[]} */
     const datasets = regressionData.map((schedule, index) => ({
