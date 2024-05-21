@@ -48,6 +48,10 @@ export default function (rawBuf) {
                 return { close: true };
             case messageTypes.readyToRun:
                 return { readyToRun: true };
+            case messageTypes.executeTasks:
+                const [, start, end] = parts.map(item => Number.parseInt(item));
+                if(Number.isNaN(start) || Number.isNaN(end) || start >= end) return null;
+                return { executeTasks: { start, end } };
             case messageTypes.runTask: {
                 const [, taskId, hardness, power] = parts;
                 return {

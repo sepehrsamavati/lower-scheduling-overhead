@@ -57,8 +57,8 @@ socket.once('connect', () => {
             if (res?.runTask) {
                 addToQueue(async () => {
                     // console.info(`Solving ${res.runTask.taskId}...`);
-                    // threadSleep(power * res.runTask.hardness); // faking task makespan
-                    await new Promise(r => setTimeout(r, (res.runTask.power * res.runTask.hardness) / (configuring ? config.configSpeed : 1)));
+                    // faking task makespan
+                    await new Promise(r => setTimeout(r, (res.runTask.power * res.runTask.hardness) / config.speedRate));
                     // console.info(`Task ${res.runTask.taskId} done.`);
                     socket.write(createMessage.taskResponse(res.runTask.taskId));
                 });

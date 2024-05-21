@@ -31,3 +31,8 @@ export type CandidateSchedule = {
     time: number;
     id: number;
 };
+
+export type ScheduleRegression = {
+    origin: CandidateSchedule;
+    regressionCalculator: (x: number) => number;
+}

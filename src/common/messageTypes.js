@@ -5,7 +5,8 @@ const messageTypes = Object.freeze({
     runTask: "RUN",
     taskResponse: "RES",
     setPower: "SPW",
-    readyToRun: "RTR"
+    readyToRun: "RTR",
+    executeTasks: "EXE"
 });
 
 export default messageTypes;

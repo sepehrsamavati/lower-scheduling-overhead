@@ -3,6 +3,7 @@ import net from "node:net";
 import "./common/noProcessExit.js";
 import eoo from "./algorithms/eoo.js";
 import config from "./common/config.js";
+import { readSync } from "./data/taskIO.js";
 import regression from "./algorithms/regression.js";
 import messageResolver, { createMessage } from "./common/messageResolver.js";
 
@@ -23,6 +24,28 @@ const showProgress = () => {
     clearInterval(progressTimer);
 };
 let scheduleEnd = () => { };
+
+const schedules = {
+    /** @type {import('./common/types').ScheduleRegression[]} */
+    regressions: [],
+    /** @param {import('./common/types').Task[]} tasks */
+    findBestFitted: (tasks) => {
+        let min = 0;
+        /** @type {{ schedule: import('./common/types').CandidateSchedule; estimatedTime: number; } | null} */
+        let selected = null;
+        for (const schedule of schedules.regressions) {
+            const makespan = schedule.regressionCalculator(tasks.length);
+            if (makespan < min) {
+                min = makespan;
+                selected = {
+                    schedule: schedule.origin,
+                    estimatedTime: makespan
+                };
+            }
+        }
+        return selected;
+    }
+};
 
 const server = net.createServer();
 
@@ -73,7 +96,8 @@ server.on('connection', socket => {
                     eoo(virtualMachines, scheduleRunner)
                         .then(optimal => {
                             regression(optimal, scheduleRunner)
-                                .then(res => {
+                                .then(regressions => {
+                                    schedules.regressions = regressions;
                                     vmSocket.forEach(socket => socket.write(createMessage.readyToRun()));
                                 });
                         });
@@ -103,6 +127,27 @@ server.on('connection', socket => {
                     scheduleEnd();
                     stopProgress();
                 }
+            } else if (res?.executeTasks) {
+                console.log("Execute tasks started...");
+                const tasks = readSync(`${res.executeTasks.start},${res.executeTasks.end}`);
+                if (tasks.length === 0) return console.warn("Couldn't select tasks");
+
+                console.log(`Finding best schedule for ${tasks.length.toLocaleString('en-US')} tasks`);
+                const result = schedules.findBestFitted(tasks);
+                if (result === null) return console.error("Couldn't find schedule");
+
+                const schedule = result.schedule;
+
+                console.log(`Estimated time: ${Math.round(result.estimatedTime).toLocaleString('en-US')}ms`);
+
+                schedule.createCombination(tasks);
+
+                const start = performance.now();
+                scheduleRunner(schedule.combination)
+                    .then(() => {
+                        const elapsedTime = Math.round(performance.now() - start);
+                        console.log(`\n\n---------------\n\nEstimated time: ${Math.round(result.estimatedTime).toLocaleString('en-US')}ms\nElapsed time: ${elapsedTime.toLocaleString('en-US')}ms`);
+                    });
             }
         });
 

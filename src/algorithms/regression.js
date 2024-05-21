@@ -34,12 +34,9 @@ export default async function (optimalSchedules, scheduleRunner) {
     const timeEntires = Object.entries(times);
     const n = timeEntires.length;
 
+    /** @type {import('../common/types').ScheduleRegression[]} */
     const schedulesRegression = optimalSchedules.map(schedule => ({
         origin: schedule,
-        /**
-         * @param {number} x
-         * @returns {number}
-         */
         regressionCalculator: x => 0
     }));
 
@@ -94,4 +91,6 @@ export default async function (optimalSchedules, scheduleRunner) {
     await saveKeyValue("r_line", timeEntires.map((_, index) => ({ key: groups[index].length.toString(), value: regressionCalculator(groups[index].length) })));
 
     debugger
+
+    return schedulesRegression;
 }
