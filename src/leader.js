@@ -30,12 +30,12 @@ const schedules = {
     regressions: [],
     /** @param {import('./common/types').Task[]} tasks */
     findBestFitted: (tasks) => {
-        let min = 0;
+        let min = -1;
         /** @type {{ schedule: import('./common/types').CandidateSchedule; estimatedTime: number; } | null} */
         let selected = null;
         for (const schedule of schedules.regressions) {
             const makespan = schedule.regressionCalculator(tasks.length);
-            if (makespan < min) {
+            if (min < 0 || makespan < min) {
                 min = makespan;
                 selected = {
                     schedule: schedule.origin,
@@ -105,6 +105,30 @@ server.on('connection', socket => {
 
                 return;
             }
+            else if (res?.executeTasks) {
+                console.log("Execute tasks started...");
+                const tasks = readSync(`${res.executeTasks.start},${res.executeTasks.end}`);
+                if (tasks.length === 0) return console.warn("Couldn't select tasks");
+
+                console.log(`Finding best schedule for ${tasks.length.toLocaleString('en-US')} tasks`);
+                const result = schedules.findBestFitted(tasks);
+                if (result === null) return console.error("Couldn't find schedule");
+
+                const schedule = result.schedule;
+
+                console.log(`Estimated time: ${Math.round(result.estimatedTime).toLocaleString('en-US')}ms`);
+
+                schedule.createCombination(tasks);
+
+                const start = performance.now();
+                scheduleRunner(schedule.combination)
+                    .then(() => {
+                        const elapsedTime = Math.round(performance.now() - start);
+                        console.log(`\n\n---------------\n\nEstimated time: ${Math.round(result.estimatedTime).toLocaleString('en-US')}ms\nElapsed time: ${elapsedTime.toLocaleString('en-US')}ms`);
+                    });
+
+                return;
+            }
             else if (!vm)
                 return;
 
@@ -127,27 +151,6 @@ server.on('connection', socket => {
                     scheduleEnd();
                     stopProgress();
                 }
-            } else if (res?.executeTasks) {
-                console.log("Execute tasks started...");
-                const tasks = readSync(`${res.executeTasks.start},${res.executeTasks.end}`);
-                if (tasks.length === 0) return console.warn("Couldn't select tasks");
-
-                console.log(`Finding best schedule for ${tasks.length.toLocaleString('en-US')} tasks`);
-                const result = schedules.findBestFitted(tasks);
-                if (result === null) return console.error("Couldn't find schedule");
-
-                const schedule = result.schedule;
-
-                console.log(`Estimated time: ${Math.round(result.estimatedTime).toLocaleString('en-US')}ms`);
-
-                schedule.createCombination(tasks);
-
-                const start = performance.now();
-                scheduleRunner(schedule.combination)
-                    .then(() => {
-                        const elapsedTime = Math.round(performance.now() - start);
-                        console.log(`\n\n---------------\n\nEstimated time: ${Math.round(result.estimatedTime).toLocaleString('en-US')}ms\nElapsed time: ${elapsedTime.toLocaleString('en-US')}ms`);
-                    });
             }
         });
 

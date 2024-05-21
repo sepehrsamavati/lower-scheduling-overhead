@@ -40,7 +40,7 @@ export default async function (optimalSchedules, scheduleRunner) {
         regressionCalculator: x => 0
     }));
 
-    counter = 0;
+    counter = -1;
     for (const schedule of schedulesRegression) {
         ++counter;
 
@@ -65,7 +65,7 @@ export default async function (optimalSchedules, scheduleRunner) {
         if (Number.isNaN(b) || Number.isNaN(A))
             debugger
 
-        schedule.regressionCalculator = x => (b * x) - A;
+        schedule.regressionCalculator = x => (b * x) + A;
     }
 
     counter = 0;

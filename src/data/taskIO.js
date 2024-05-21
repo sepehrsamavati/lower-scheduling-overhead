@@ -40,10 +40,7 @@ export const readSync = (group) => {
         'c3': [550, 900],
         'c4': [900, 1300],
         'config': [1300, 1300 + config.configTaskCount],
-    })[group];
-
-    if (start === undefined && end === undefined)
-        [start, end] = group.split(',').map(item => Number.parseInt(item));
+    })[group] ?? group.split(',').map(item => Number.parseInt(item));
 
     return tasks.slice(start, end);
 };

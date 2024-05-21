@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { readKeyValue } from "./stats.js";
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 
-const files = fs.readdirSync("./cache").filter(file => !file.includes('.png'));
+const files = fs.readdirSync("./cache").filter(file => !file.includes('.png') && file.endsWith('.json'));
 
 const regressionData = [];
 
@@ -21,6 +21,9 @@ const colors = [
     '#26a9e0',
     '#f72585',
     '#fb6f92',
+    '#e63946',
+    '#309f5f',
+    '#ffd500',
 ];
 
 for (const file of files) {
@@ -31,6 +34,9 @@ for (const file of files) {
             height: 600,
             backgroundColour: '#e5e5e5'
         });
+
+        const average = data.map(item => item.value).reduce((a, b) => a + b) / data.length;
+
         const buff = chartCanvas.renderToBufferSync({
             data: {
                 labels: data.map(item => item.key),
@@ -43,6 +49,13 @@ for (const file of files) {
                         borderDash: [5, 5],
                         borderWidth: 3,
                         tension: 0.4
+                    },
+                    {
+                        label: "Average",
+                        data: data.map(() => average),
+                        borderColor: "#ffd500",
+                        type: "line",
+                        pointRadius: 0
                     },
                     {
                         label: "Candidate schedules makespan",
@@ -68,20 +81,18 @@ for (const file of files) {
                 labels: data.map(item => item.key),
                 datasets: [
                     {
-                        label: "Linear",
-                        data: data.map(item => item.value),
-                        borderColor: "#d00000",
+                        label: "Average",
+                        data: data.map(() => average),
+                        borderColor: "#ffd500",
                         type: "line",
-                        borderDash: [5, 5],
-                        borderWidth: 3,
-                        tension: 0.4
+                        pointRadius: 0
                     },
                     {
                         label: "Candidate schedules makespan (sorted)",
                         data: data.map(item => item.value),
                         backgroundColor: "#14213d",
                         type: "bar"
-                    }
+                    },
                 ]
             },
             type: "bar"
@@ -102,6 +113,7 @@ for (const file of files) {
                         label: "Optimal schedules (intersection) makespan",
                         data: data.map(item => item.value),
                         backgroundColor: colors,
+                        barThickness: 15
                     }
                 ]
             },

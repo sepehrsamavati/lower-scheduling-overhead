@@ -15,7 +15,7 @@ console.info(`VM startup power: ${power}`);
 /** @type {Array<() => Promise<void>>} */
 const taskQueue = [];
 let runningTasks = 0;
-const concurrentLimit = 1;
+const concurrentLimit = 2;
 
 /**
  * 
