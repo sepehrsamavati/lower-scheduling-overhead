@@ -7,7 +7,7 @@ const filePath = "./src/data/dataset.json";
 let buffCache = null;
 
 export const generateSync = () => {
-    const count = config.configTaskCount + 250 + 300 + 350 + 400;
+    const count = config.configTaskCount + 250 + 300 + 350 + 5e3;
 
     let taskId = 0;
 
@@ -26,7 +26,7 @@ export const generateSync = () => {
 
 /**
  * 
- * @param {'c1' | 'c2' | 'c3' | 'c4' | 'config'} group 
+ * @param {'c1' | 'c2' | 'c3' | 'c4' | 'config' | (string & {})} group 
  */
 export const readSync = (group) => {
     const buff = buffCache ?? fs.readFileSync(filePath);
@@ -34,13 +34,16 @@ export const readSync = (group) => {
     /** @type {import('../common/types.js').Task[]} */
     const tasks = JSON.parse(serialized);
 
-    const [start, end] = ({
+    let [start, end] = ({
         'c1': [0, 250],
         'c2': [250, 550],
         'c3': [550, 900],
         'c4': [900, 1300],
         'config': [1300, 1300 + config.configTaskCount],
     })[group];
+
+    if (start === undefined && end === undefined)
+        [start, end] = group.split(',').map(item => Number.parseInt(item));
 
     return tasks.slice(start, end);
 };
