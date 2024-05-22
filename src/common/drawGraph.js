@@ -8,32 +8,73 @@ const files = fs.readdirSync("./cache").filter(file => !file.includes('.png') &&
 
 const regressionData = [];
 
+const baseOptions = {
+    options: {
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#fff'
+                }
+            }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    color: "#fff"
+                },
+                grid: {
+                    color: '#2a2a2a',
+                    borderColor: '#fff'
+                }
+            },
+            y: {
+                beginAtZero: false,
+                ticks: {
+                    color: "#fff"
+                },
+                grid: {
+                    color: '#2a2a2a',
+                    borderColor: '#fff'
+                }
+            }
+        }
+    },
+};
+
+const baseConfig = {
+    width: 1356,
+    height: 760,
+    // backgroundColour: '#e5e5e5'
+};
+
 const colors = [
-    '#d90429',
-    '#f77f00',
-    '#5a189a',
-    '#38b000',
-    '#ffc300',
-    '#03045e',
-    '#343a40',
-    '#07beb8',
-    '#7f4f24',
-    '#26a9e0',
-    '#f72585',
-    '#fb6f92',
-    '#e63946',
-    '#309f5f',
-    '#ffd500',
+    '#a70000',
+    '#ff002b',
+    '#c44f00',
+    '#f77300',
+    '#ffcc00',
+    '#ffff00',
+    '#2528d6',
+    '#0077ff',
+    '#31b3ff',
+    '#00c8a6',
+    '#437690',
+    '#5a1b9a',
+    '#9d00ff',
+    '#00a700',
+    '#17e600',
+    '#535353',
+    '#b3b3b3',
+    '#a76932',
+    '#9f006f',
+    '#ff00a6',
+    '#ff69b4',
 ];
 
 for (const file of files) {
     const data = await readKeyValue(file);
     if (file === 'eoo.json') {
-        const chartCanvas = new ChartJSNodeCanvas({
-            width: 1000,
-            height: 600,
-            backgroundColour: '#e5e5e5'
-        });
+        const chartCanvas = new ChartJSNodeCanvas(baseConfig);
 
         const average = data.map(item => item.value).reduce((a, b) => a + b) / data.length;
 
@@ -60,22 +101,19 @@ for (const file of files) {
                     {
                         label: "Candidate schedules makespan",
                         data: data.map(item => item.value),
-                        backgroundColor: "#14213d",
+                        backgroundColor: "#9d00ff",
                         type: "bar"
                     }
                 ]
             },
+            ...baseOptions,
             type: "bar"
         });
         await fs.promises.writeFile(`./cache/${file}.png`, buff);
 
         data.sort((a, b) => a.value - b.value);
 
-        const sortedChartCanvas = new ChartJSNodeCanvas({
-            width: 1000,
-            height: 600,
-            backgroundColour: '#e5e5e5'
-        });
+        const sortedChartCanvas = new ChartJSNodeCanvas(baseConfig);
         const sortedBuff = sortedChartCanvas.renderToBufferSync({
             data: {
                 labels: data.map(item => item.key),
@@ -90,21 +128,18 @@ for (const file of files) {
                     {
                         label: "Candidate schedules makespan (sorted)",
                         data: data.map(item => item.value),
-                        backgroundColor: "#14213d",
+                        backgroundColor: "#9d00ff", // #14213d
                         type: "bar"
                     },
                 ]
             },
+            ...baseOptions,
             type: "bar"
         });
         await fs.promises.writeFile(`./cache/${file}_sorted.png`, sortedBuff);
     }
     else if (file === 'eoo_intersection.json') {
-        const chartCanvas = new ChartJSNodeCanvas({
-            width: 1000,
-            height: 600,
-            backgroundColour: '#e5e5e5'
-        });
+        const chartCanvas = new ChartJSNodeCanvas(baseConfig);
         const buff = chartCanvas.renderToBufferSync({
             data: {
                 labels: data.map(item => `s${item.key}`),
@@ -116,6 +151,21 @@ for (const file of files) {
                         barThickness: 15
                     }
                 ]
+            },
+            options: {
+                ...baseOptions.options,
+                scales: {
+                    ...baseOptions.options.scales,
+                    y: {
+                        ...baseOptions.options.scales.y,
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
             },
             type: "bar"
         });
@@ -131,11 +181,7 @@ for (const file of files) {
 
 if (regressionData.length) {
     const regressionLineData = await readKeyValue("r_line");
-    const chartCanvas = new ChartJSNodeCanvas({
-        width: 1000,
-        height: 600,
-        backgroundColour: '#e5e5e5'
-    });
+    const chartCanvas = new ChartJSNodeCanvas(baseConfig);
 
     regressionData.sort((a, b) => parseInt(a.scheduleId) - parseInt(b.scheduleId));
 
@@ -146,16 +192,16 @@ if (regressionData.length) {
         backgroundColor: colors[index % colors.length],
         borderColor: colors[index % colors.length],
         borderWidth: 2,
-        type: 'line'
+        type: 'line',
     }));
 
     datasets.unshift({
         label: "RLine",
         data: regressionLineData.map(item => item.value),
-        backgroundColor: '#000000',
-        borderColor: '#000000',
-        borderDash: [5, 5],
-        borderWidth: 5,
+        backgroundColor: '#fff',
+        borderColor: '#fff',
+        borderDash: [3, 3],
+        borderWidth: 4,
         fill: false,
         type: 'line'
     });
@@ -165,6 +211,7 @@ if (regressionData.length) {
             datasets,
             labels: regressionData[0].data.map(item => item.key),
         },
+        ...baseOptions,
         type: "bar"
     });
     await fs.promises.writeFile(`./cache/makespan_vs_load.png`, buff);
